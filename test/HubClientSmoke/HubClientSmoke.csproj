@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Live wire-format smoke test for HubClient against a real pc-dash-hub. Deliberately
+    NOT Windows-targeted (no WinRT/Core-Audio dependency): it only exercises the
+    HTTP/JSON contract, so it can run from any Linux dev box with LAN reachability,
+    unlike the rest of this app. Compiles the real HubClient.cs by reference rather
+    than duplicating it, so this actually verifies the shipped code.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/PcDashApp/HubClient.cs" Link="HubClient.cs" />
+  </ItemGroup>
+
+</Project>
