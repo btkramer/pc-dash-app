@@ -9,6 +9,13 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWinRT>true</UseWinRT>
     <InvariantGlobalization>true</InvariantGlobalization>
+    <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
+    <!-- PublishTrimmed disables classic COM activation by default (feature switch
+         System.Runtime.InteropServices.BuiltInComInterop.IsSupported). NAudio's
+         CoreAudioApi (MMDeviceEnumerator) is a classic COM coclass, not WinRT, and
+         needs this on: without it, `new MMDeviceEnumerator()` throws
+         NotSupportedException at runtime (confirmed on real Windows 2026-08-20). -->
+    <BuiltInComInteropSupport>true</BuiltInComInteropSupport>
   </PropertyGroup>
 
   <ItemGroup>

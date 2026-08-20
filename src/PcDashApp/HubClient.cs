@@ -1,4 +1,3 @@
-using System.Net.Http.Json;
 using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Text.Json.Serialization;
@@ -64,7 +63,7 @@ public sealed class HubClient
         if (update.ClearNowPlaying)
             pcState["nowPlaying"] = null;
         else if (update.NowPlaying is { } nowPlaying)
-            pcState["nowPlaying"] = JsonSerializer.SerializeToNode(nowPlaying);
+            pcState["nowPlaying"] = JsonSerializer.SerializeToNode(nowPlaying, PcDashJsonContext.Default.NowPlayingPayload);
 
         if (pcState.Count == 0)
             return true; // nothing known this tick -- skip the request rather than PUT an empty pcState
@@ -73,7 +72,10 @@ public sealed class HubClient
 
         try
         {
-            using var response = await _http.PutAsJsonAsync($"/api/devices/{_deviceId}/state", body, ct);
+            // JsonObject/JsonNode serializes via its own converter, not reflection -- ToJsonString()
+            // (rather than PutAsJsonAsync<JsonObject>) keeps this call trim-safe without a source-gen entry.
+            using var content = new StringContent(body.ToJsonString(), System.Text.Encoding.UTF8, "application/json");
+            using var response = await _http.PutAsync($"/api/devices/{_deviceId}/state", content, ct);
             return response.IsSuccessStatusCode;
         }
         catch (Exception)

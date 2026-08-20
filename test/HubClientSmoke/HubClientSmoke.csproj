@@ -16,6 +16,8 @@
 
   <ItemGroup>
     <Compile Include="../../src/PcDashApp/HubClient.cs" Link="HubClient.cs" />
+    <Compile Include="../../src/PcDashApp/PcDashJsonContext.cs" Link="PcDashJsonContext.cs" />
+    <Compile Include="../../src/PcDashApp/Config.cs" Link="Config.cs" />
   </ItemGroup>
 
 </Project>

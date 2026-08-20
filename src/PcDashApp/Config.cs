@@ -14,9 +14,6 @@ public sealed class AppConfig
             return new AppConfig();
 
         var json = File.ReadAllText(path);
-        return JsonSerializer.Deserialize<AppConfig>(json, new JsonSerializerOptions
-        {
-            PropertyNameCaseInsensitive = true
-        }) ?? new AppConfig();
+        return JsonSerializer.Deserialize(json, PcDashJsonContext.Default.AppConfig) ?? new AppConfig();
     }
 }

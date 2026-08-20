@@ -16,9 +16,13 @@ public sealed class AudioMonitor : IDisposable
             var percent = (int)Math.Round(endpointVolume.MasterVolumeLevelScalar * 100);
             return (percent, endpointVolume.Mute);
         }
-        catch (Exception)
+        catch (Exception ex)
         {
-            // No default render device (e.g. nothing plugged in) -- report unknown, don't crash the loop.
+            // No default render device (e.g. nothing plugged in) -- report unknown, don't crash the
+            // loop. Logged (not just swallowed) so a real failure here is diagnosable instead of
+            // silently omitting volume/mute forever with no visible cause -- same blind spot that
+            // hid the BuiltInComInterop trim bug until Program.cs got a top-level try/catch.
+            Console.WriteLine($"[{DateTime.Now:T}] AudioMonitor read failed: {ex.GetType().Name}: {ex.Message}");
             return null;
         }
     }
