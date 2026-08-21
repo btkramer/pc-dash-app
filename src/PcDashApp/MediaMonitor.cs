@@ -30,13 +30,15 @@ public sealed record MediaReadResult(MediaReadStatus Status, NowPlayingInfo? Inf
 /// Reads now-playing state via SMTC (Windows.Media.Control). Known, accepted limitation
 /// (see ../../arduino/lilygo-rotary-knob/ECOSYSTEM_PLAN.md "YouTube-aware pause"): SMTC
 /// reports "a media session is active" per source app, not per browser tab -- a YouTube
-/// tab surfaces as Source="Chrome"/"Edge" unless the site's own Media Session metadata
-/// happens to populate Title/Artist. Source is the raw AUMID (e.g. "Spotify.exe" or a
-/// package family name), not a mapped friendly name -- that mapping is a future nicety,
-/// not v1 scope.
+/// tab still resolves to "Google Chrome"/"Microsoft Edge" (T15 resolves the AUMID to that
+/// friendly app name via <see cref="AppNameResolver"/>) unless the site's own Media Session
+/// metadata happens to populate Title/Artist -- there's no tab-level identity in SMTC to
+/// resolve a friendly name from, no clean way around this short of a browser extension.
 /// </summary>
 public sealed class MediaMonitor
 {
+    private readonly AppNameResolver _appNameResolver = new();
+
     public async Task<MediaReadResult> ReadNowPlayingAsync()
     {
         try
@@ -55,11 +57,13 @@ public sealed class MediaMonitor
             long? positionMs = timeline is null ? null : (long)timeline.Position.TotalMilliseconds;
             long? durationMs = timeline is null ? null : (long)(timeline.EndTime - timeline.StartTime).TotalMilliseconds;
 
+            var rawSource = session.SourceAppUserModelId;
+
             return MediaReadResult.PlayingResult(new NowPlayingInfo(
                 IsPlaying: isPlaying,
                 Title: props?.Title,
                 Artist: props?.Artist,
-                Source: session.SourceAppUserModelId,
+                Source: rawSource is null ? null : _appNameResolver.Resolve(rawSource),
                 PositionMs: positionMs,
                 DurationMs: durationMs));
         }

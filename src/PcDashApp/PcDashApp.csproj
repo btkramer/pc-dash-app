@@ -1,14 +1,21 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
   <PropertyGroup>
-    <OutputType>Exe</OutputType>
+    <OutputType>WinExe</OutputType>
     <TargetFramework>net8.0-windows10.0.19041.0</TargetFramework>
     <SupportedOSPlatformVersion>10.0.17763.0</SupportedOSPlatformVersion>
     <RootNamespace>PcDashApp</RootNamespace>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
     <UseWinRT>true</UseWinRT>
-    <InvariantGlobalization>true</InvariantGlobalization>
+    <UseWPF>true</UseWPF>
+    <!-- Was `true` under the old console-only app (fine there, no text rendering).
+         WPF's font cache constructs a real CultureInfo("en") during its static init
+         (MS.Internal.FontCache.MajorLanguages), which throws CultureNotFoundException
+         under invariant globalization, crashing on the very first window shown.
+         Confirmed on real Windows 2026-08-21 (T13). WPF and InvariantGlobalization
+         are incompatible; must be off for any window content to render at all. -->
+    <InvariantGlobalization>false</InvariantGlobalization>
     <SatelliteResourceLanguages>en</SatelliteResourceLanguages>
     <!-- PublishTrimmed disables classic COM activation by default (feature switch
          System.Runtime.InteropServices.BuiltInComInterop.IsSupported). NAudio's

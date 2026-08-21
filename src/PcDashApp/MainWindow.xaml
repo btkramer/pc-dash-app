@@ -1,0 +1,82 @@
+<Window x:Class="PcDashApp.MainWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="pc-dash-app" Height="480" Width="420" MinHeight="360" MinWidth="340">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <StackPanel Grid.Row="0" Margin="0,0,0,10">
+            <TextBlock Text="pc-dash-app" FontSize="18" FontWeight="Bold"/>
+            <TextBlock>
+                <Run Text="Device "/><Run x:Name="DeviceIdText" FontWeight="SemiBold"/>
+                <Run Text=" -&gt; "/><Run x:Name="HubUrlText"/>
+            </TextBlock>
+        </StackPanel>
+
+        <GroupBox Grid.Row="1" Header="Hub connection" Margin="0,0,0,10">
+            <Grid Margin="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="HubStatusText" Text="starting..."/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Last sync:"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LastSyncText" Text="never"/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Row="2" Header="Volume" Margin="0,0,0,10">
+            <Grid Margin="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Volume:"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="VolumeText" Text="unknown"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="Muted:"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="MutedText" Text="unknown"/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Row="3" Header="Now playing" Margin="0,0,0,10">
+            <Grid Margin="6">
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="110"/>
+                    <ColumnDefinition Width="*"/>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                    <RowDefinition/>
+                </Grid.RowDefinitions>
+                <TextBlock Grid.Row="0" Grid.Column="0" Text="Track:"/>
+                <TextBlock Grid.Row="0" Grid.Column="1" x:Name="TrackText" Text="(none)" TextWrapping="Wrap"/>
+                <TextBlock Grid.Row="1" Grid.Column="0" Text="State:"/>
+                <TextBlock Grid.Row="1" Grid.Column="1" x:Name="PlayStateText" Text="unknown"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Source:"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="SourceText" Text="(none)"/>
+            </Grid>
+        </GroupBox>
+
+        <GroupBox Grid.Row="4" Header="Activity log">
+            <TextBox x:Name="LogBox" IsReadOnly="True" TextWrapping="NoWrap"
+                     VerticalScrollBarVisibility="Auto" HorizontalScrollBarVisibility="Auto"
+                     FontFamily="Consolas" FontSize="11" Background="#FFF5F5F5"/>
+        </GroupBox>
+    </Grid>
+</Window>
