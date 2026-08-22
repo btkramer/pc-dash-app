@@ -1,4 +1,5 @@
 using System.IO;
+using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
 
@@ -21,6 +22,7 @@ public partial class MainWindow : Window
         var config = AppConfig.Load(Path.Combine(AppContext.BaseDirectory, "appsettings.json"));
         DeviceIdText.Text = config.DeviceId;
         HubUrlText.Text = config.HubBaseUrl;
+        BuildTimeText.Text = GetBuildTimeLabel();
 
         _reporter = new StateReporter(config);
         _reporter.Ticked += OnTicked;
@@ -102,5 +104,24 @@ public partial class MainWindow : Window
         _agoTimer.Stop();
         _cts.Cancel();
         _reporter.Dispose();
+    }
+
+    /// <summary>T27: which build is actually running has cost real debugging time twice
+    /// (a stale dist/ during T13, a stale running process during T25) with no way to check
+    /// from inside the app itself. Uses the main DLL's own last-write time as a build-time
+    /// proxy -- accurate enough to answer "did this get relaunched after I republished," the
+    /// actual question that mattered both times, without needing new MSBuild-time codegen.</summary>
+    private static string GetBuildTimeLabel()
+    {
+        try
+        {
+            var dllPath = Assembly.GetExecutingAssembly().Location;
+            var buildTimeUtc = File.GetLastWriteTimeUtc(dllPath);
+            return $"Build: {buildTimeUtc:yyyy-MM-dd HH:mm} UTC";
+        }
+        catch
+        {
+            return "Build: unknown";
+        }
     }
 }

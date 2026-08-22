@@ -17,12 +17,13 @@ public sealed record ReportTickResult(
     string? Source,
     bool? ReportOk);
 
-/// <summary>Last-successfully-sent values, for change comparison (T17). Deliberately excludes
-/// PositionMs/DurationMs -- those change on essentially every poll during playback, so
-/// including them would make "change-triggered" fire every tick and defeat the point; they
-/// still ride along in the payload whenever a report goes out for another reason. Fields here
-/// carry forward across polls that didn't have fresh reads (merged, not overwritten by nulls)
-/// so an unrelated field going briefly unreadable doesn't look like "reverted to unknown".</summary>
+/// <summary>Last-successfully-sent values, for change comparison. T25: PositionMs/DurationMs
+/// now count as a "change" like every other field -- per Brian's explicit design spec, a
+/// value that changes every poll (like playback position during playback) should be sent
+/// every poll; <see cref="AppConfig.PollIntervalMs"/> (the ~1s floor) is what throttles that,
+/// not a separate exclusion here. Fields here carry forward across polls that didn't have
+/// fresh reads (merged, not overwritten by nulls) so an unrelated field going briefly
+/// unreadable doesn't look like "reverted to unknown".</summary>
 internal sealed record ComparableState(
     int? VolumePercent,
     bool? Muted,
@@ -30,6 +31,8 @@ internal sealed record ComparableState(
     string? Title,
     string? Artist,
     string? Source,
+    long? PositionMs,
+    long? DurationMs,
     bool HasTrack)
 {
     public static ComparableState MergeAfterSend(ComparableState? previous, PcStateUpdate sent) => new(
@@ -39,6 +42,8 @@ internal sealed record ComparableState(
         Title: sent.ClearNowPlaying ? null : sent.NowPlaying?.Title ?? previous?.Title,
         Artist: sent.ClearNowPlaying ? null : sent.NowPlaying?.Artist ?? previous?.Artist,
         Source: sent.ClearNowPlaying ? null : sent.NowPlaying?.Source ?? previous?.Source,
+        PositionMs: sent.ClearNowPlaying ? null : sent.NowPlaying?.PositionMs ?? previous?.PositionMs,
+        DurationMs: sent.ClearNowPlaying ? null : sent.NowPlaying?.DurationMs ?? previous?.DurationMs,
         HasTrack: !sent.ClearNowPlaying && (sent.NowPlaying is not null || (previous?.HasTrack ?? false)));
 
     /// <summary>True if this tick's (non-null/known) fields differ from what was last sent --
@@ -49,18 +54,20 @@ internal sealed record ComparableState(
         (candidate.SpeakerMuted is { } m && m != Muted) ||
         (candidate.NowPlayingIsPlaying is { } p && p != IsPlaying) ||
         (candidate.ClearNowPlaying && HasTrack) ||
-        (candidate.NowPlaying is { } np && (np.Title != Title || np.Artist != Artist || np.Source != Source));
+        (candidate.NowPlaying is { } np && (np.Title != Title || np.Artist != Artist || np.Source != Source
+            || np.PositionMs != PositionMs || np.DurationMs != DurationMs));
 }
 
 /// <summary>
-/// The read-Core-Audio/SMTC-then-PUT-to-hub loop. T17: reports push on state change
-/// (rate-limited to once per <see cref="AppConfig.PollIntervalMs"/>, since a change can only
-/// be noticed once per poll) rather than blindly on a fixed timer, but keeps a heartbeat PUT
-/// at <see cref="AppConfig.ReportIntervalMs"/> regardless of change -- pc-dash-hub's staleness
-/// detection (T5/T10) was tuned around a steady ~5s heartbeat, and a quiet stretch (paused
-/// media, stable volume) must not make the hub think the PC went offline. Position/duration
-/// deliberately don't count as a "change" (see <see cref="ComparableState"/>) -- only the
-/// heartbeat or an actual volume/mute/play-state/track change triggers a send.
+/// The read-Core-Audio/SMTC-then-PUT-to-hub loop. Reports push on state change (rate-limited
+/// to once per <see cref="AppConfig.PollIntervalMs"/>, the ~1s floor, since a change can only
+/// be noticed once per poll), but keeps a heartbeat PUT at <see cref="AppConfig.ReportIntervalMs"/>
+/// regardless of change -- pc-dash-hub's staleness detection (T5/T10) was tuned around a
+/// steady heartbeat, and a genuinely quiet stretch (paused media, stable volume, nothing at
+/// all changing) must not make the hub think the PC went offline. T25: position/duration are
+/// now part of "change" like every other field (see <see cref="ComparableState"/>), so during
+/// active playback the poll cadence itself becomes the effective send cadence -- the heartbeat
+/// only matters as a fallback for stretches where literally nothing is changing.
 /// </summary>
 public sealed class StateReporter : IDisposable
 {
