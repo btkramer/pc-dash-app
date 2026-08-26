@@ -15,6 +15,24 @@ namespace PcDashApp;
 ///   - volumePercent is server-validated 0-100 (422 if out of range).
 ///   - pcConnected/lastSeenSecondsAgo must never be sent -- server computes both from
 ///     a server-stamped lastSeenAt, ignores those keys if present.
+///
+/// T44: utcOffsetMinutes/timeZoneName carry the PC's live local timezone so the knob's
+/// idle-screen clock follows wherever the PC is actually set (no static firmware TZ
+/// constant). Deliberately NOT a POSIX TZ string: reducing Windows' TimeZoneInfo
+/// adjustment rules to a fully correct POSIX rule (DST transition weekday/week
+/// encoding, Southern-hemisphere month wraparound, non-1hr DST deltas) is real,
+/// untestable-from-this-Linux-container risk for a silent, hard-to-notice failure
+/// mode (wrong time twice a year). Instead utcOffsetMinutes is the *current effective*
+/// UTC offset (DST already resolved by .NET/the OS for "now") -- the knob just adds it
+/// to its own UTC reference, no DST rule table needed on either end. It self-corrects
+/// every report (change-triggered or the heartbeat, same as volume/now-playing), so a
+/// DST flip or a PC timezone change shows up within one heartbeat interval (currently
+/// <=12s per T5/T10) of the app being able to reach the hub again. Always known/sent
+/// (never omitted) -- unlike audio/media reads, there's no failure mode where the
+/// local timezone is transiently unreadable. timeZoneName is cosmetic only (Windows'
+/// display name for whichever of Standard/Daylight is currently in effect, e.g.
+/// "Mountain Standard Time") -- not meant to be parsed, just a human-readable label if
+/// a UI wants to show one.
 /// </summary>
 public sealed record NowPlayingPayload(
     [property: JsonPropertyName("title")] string? Title,
@@ -36,6 +54,8 @@ public sealed class PcStateUpdate
     public bool? NowPlayingIsPlaying { get; init; }
     public NowPlayingPayload? NowPlaying { get; init; }
     public bool ClearNowPlaying { get; init; }
+    public int? UtcOffsetMinutes { get; init; }
+    public string? TimeZoneName { get; init; }
 }
 
 public sealed class HubClient
@@ -60,6 +80,10 @@ public sealed class HubClient
             pcState["speakerMuted"] = muted;
         if (update.NowPlayingIsPlaying is { } playing)
             pcState["nowPlayingIsPlaying"] = playing;
+        if (update.UtcOffsetMinutes is { } offsetMinutes)
+            pcState["utcOffsetMinutes"] = offsetMinutes;
+        if (update.TimeZoneName is { } tzName)
+            pcState["timeZoneName"] = tzName;
 
         if (update.ClearNowPlaying)
             pcState["nowPlaying"] = null;

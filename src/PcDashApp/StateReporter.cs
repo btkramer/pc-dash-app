@@ -67,7 +67,12 @@ internal sealed record ComparableState(
 /// all changing) must not make the hub think the PC went offline. T25: position/duration are
 /// now part of "change" like every other field (see <see cref="ComparableState"/>), so during
 /// active playback the poll cadence itself becomes the effective send cadence -- the heartbeat
-/// only matters as a fallback for stretches where literally nothing is changing.
+/// only matters as a fallback for stretches where literally nothing is changing. T44:
+/// UtcOffsetMinutes/TimeZoneName (see <see cref="HubClient"/>'s doc comment) are computed fresh
+/// every tick and included on every report that actually fires, but deliberately excluded from
+/// <see cref="ComparableState"/>'s change comparison -- a timezone flip alone shouldn't force an
+/// off-cycle send, it just rides along on the next change-triggered or heartbeat send like
+/// everything else, which is frequent enough (<=12s worst case) for a self-correcting clock.
 /// </summary>
 public sealed class StateReporter : IDisposable
 {
@@ -97,10 +102,15 @@ public sealed class StateReporter : IDisposable
             var volume = _audioMonitor.ReadVolumeAndMute();
             var media = await _mediaMonitor.ReadNowPlayingAsync();
 
+            var localTz = TimeZoneInfo.Local;
+            var utcNow = DateTime.UtcNow;
+
             var update = new PcStateUpdate
             {
                 VolumePercent = volume?.VolumePercent,
                 SpeakerMuted = volume?.Muted,
+                UtcOffsetMinutes = (int)localTz.GetUtcOffset(utcNow).TotalMinutes,
+                TimeZoneName = localTz.IsDaylightSavingTime(utcNow) ? localTz.DaylightName : localTz.StandardName,
                 NowPlayingIsPlaying = media.Status switch
                 {
                     MediaReadStatus.Playing => media.Info!.IsPlaying,
