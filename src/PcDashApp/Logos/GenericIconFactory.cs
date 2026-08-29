@@ -98,6 +98,50 @@ public static class GenericIconFactory
                 AddLine(c, stroke, 7, 16, 17, 16);
                 break;
 
+            // T54 additions. These use AddPath (arc/curve markup) rather than the
+            // primitive helpers -- a cylinder/cloud/rocket outline isn't practical
+            // from Line/Rect/Ellipse alone. The same path data is the SVG the hub
+            // bundles for its own renderer (assets/generic-icons/<id>.svg).
+            case GenericIconIds.Database:
+                AddPath(c, stroke, "M5 6 A7 3 0 0 1 19 6 A7 3 0 0 1 5 6 M5 6 V18 A7 3 0 0 0 19 18 V6 M5 12 A7 3 0 0 0 19 12");
+                break;
+
+            case GenericIconIds.Cloud:
+                AddPath(c, stroke, "M8 18 A4.5 4.5 0 0 1 7.5 9 A5 5 0 0 1 17 8.5 A4 4 0 0 1 17 18 Z");
+                break;
+
+            case GenericIconIds.GitBranch:
+                AddLine(c, stroke, 6, 3, 6, 15);
+                AddEllipse(c, stroke, 6, 18, 3);
+                AddEllipse(c, stroke, 18, 6, 3);
+                AddPath(c, stroke, "M18 9 A9 9 0 0 1 9 18");
+                break;
+
+            case GenericIconIds.Bug:
+                AddEllipse(c, stroke, 12, 13, 5, ry: 6);
+                AddLine(c, stroke, 7, 13, 17, 13);
+                AddLine(c, stroke, 10, 7.2, 8, 4);
+                AddLine(c, stroke, 14, 7.2, 16, 4);
+                AddLine(c, stroke, 7.3, 10, 3, 8);
+                AddLine(c, stroke, 7, 13, 3, 13);
+                AddLine(c, stroke, 7.3, 16, 3, 18);
+                AddLine(c, stroke, 16.7, 10, 21, 8);
+                AddLine(c, stroke, 17, 13, 21, 13);
+                AddLine(c, stroke, 16.7, 16, 21, 18);
+                break;
+
+            case GenericIconIds.Rocket:
+                AddPath(c, stroke, "M12 3 C15 6 16 10 16 14 L14 17 H10 L8 14 C8 10 9 6 12 3 Z");
+                AddPath(c, stroke, "M10 16 L7 19 L8.5 15");
+                AddPath(c, stroke, "M14 16 L17 19 L15.5 15");
+                AddPath(c, stroke, "M10 18 L12 22 L14 18");
+                AddEllipse(c, stroke, 12, 10, 1.8);
+                break;
+
+            case GenericIconIds.Shield:
+                AddPath(c, stroke, "M12 3 L20 6 V12 C20 17 16 20 12 21 C8 20 4 17 4 12 V6 Z");
+                break;
+
             default:
                 var tb = new TextBlock
                 {
@@ -148,15 +192,30 @@ public static class GenericIconFactory
         c.Children.Add(r);
     }
 
-    private static void AddEllipse(Canvas c, Brush stroke, double cx, double cy, double r, Brush? fill = null)
+    private static void AddEllipse(Canvas c, Brush stroke, double cx, double cy, double r, Brush? fill = null, double? ry = null)
     {
+        var radiusY = ry ?? r;
         var e = new Ellipse
         {
-            Width = r * 2, Height = r * 2, Stroke = stroke, StrokeThickness = 1.6,
+            Width = r * 2, Height = radiusY * 2, Stroke = stroke, StrokeThickness = 1.6,
             Fill = fill ?? Brushes.Transparent
         };
         Canvas.SetLeft(e, cx - r);
-        Canvas.SetTop(e, cy - r);
+        Canvas.SetTop(e, cy - radiusY);
         c.Children.Add(e);
+    }
+
+    private static void AddPath(Canvas c, Brush stroke, string data, Brush? fill = null)
+    {
+        c.Children.Add(new Path
+        {
+            Data = Geometry.Parse(data),
+            Stroke = stroke,
+            StrokeThickness = 1.6,
+            StrokeLineJoin = PenLineJoin.Round,
+            StrokeStartLineCap = PenLineCap.Round,
+            StrokeEndLineCap = PenLineCap.Round,
+            Fill = fill ?? Brushes.Transparent
+        });
     }
 }

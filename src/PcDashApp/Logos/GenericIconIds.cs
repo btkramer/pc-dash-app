@@ -23,6 +23,14 @@ public static class GenericIconIds
     public const string Gear = "gear";
     public const string Layers = "layers";
     public const string Flask = "flask";
+    // T54 (2026-08-28): grew the set past the original 8. Same rules -- id is the
+    // wire value, order below is picker order, adding never reassigns existing picks.
+    public const string Database = "database";
+    public const string Cloud = "cloud";
+    public const string GitBranch = "git-branch";
+    public const string Bug = "bug";
+    public const string Rocket = "rocket";
+    public const string Shield = "shield";
 
     /// <summary>Display label for the picker's generic-icon row. Order here is also
     /// the order shown in the picker -- stable, not alphabetized, so it doesn't
@@ -37,6 +45,12 @@ public static class GenericIconIds
         (Gear, "Gear"),
         (Layers, "Layers"),
         (Flask, "Flask"),
+        (Database, "Database"),
+        (Cloud, "Cloud"),
+        (GitBranch, "Git branch"),
+        (Bug, "Bug"),
+        (Rocket, "Rocket"),
+        (Shield, "Shield"),
     ];
 
     public static bool IsKnown(string id) => All.Any(i => i.Id == id);
