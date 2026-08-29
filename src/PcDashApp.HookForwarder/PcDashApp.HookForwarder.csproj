@@ -1,0 +1,26 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    T58: a real Claude Code hook listener. Deliberately NOT part of PcDashApp.csproj
+    (which is net8.0-windows-only, WPF/WinRT/NAudio) - this needs to run wherever a
+    Claude Code session actually runs, which today includes this Linux container via
+    SSH, not just Brian's Windows PC. See HOOKS_SCHEMA.md's "Where this actually runs".
+
+    Invoked once per hook event by Claude Code's own hook mechanism (registered in a
+    settings.json "hooks" block - see HOOKS_SCHEMA.md's "Rollout" section, NOT applied
+    anywhere yet). Must never hang or throw visibly: a hook command that misbehaves
+    disrupts every Claude Code turn under whichever settings.json it's wired into.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <RootNamespace>PcDashApp.HookForwarder</RootNamespace>
+    <AssemblyName>pc-dash-hook-forwarder</AssemblyName>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- Plain console tool, no WPF/text-rendering pipeline - none of PcDashApp's
+         InvariantGlobalization-vs-WPF incompatibility applies here. -->
+    <InvariantGlobalization>true</InvariantGlobalization>
+  </PropertyGroup>
+
+</Project>

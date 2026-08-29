@@ -1,0 +1,28 @@
+<Window x:Class="PcDashApp.Logos.ProjectLogosWindow"
+        xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        Title="Project logos" Height="420" Width="380" MinHeight="300" MinWidth="320">
+    <Grid Margin="12">
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+        </Grid.RowDefinitions>
+
+        <TextBlock Grid.Row="0" TextWrapping="Wrap" Margin="0,0,0,8" Foreground="Gray" FontSize="11">
+            Agent-monitor mode itself doesn't track real projects yet -- this list is a
+            manual stand-in so the T52 logo picker can be exercised end to end. Type a
+            project id below to add one (or reuse one that already exists).
+        </TextBlock>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Margin="0,0,0,10">
+            <TextBox x:Name="NewProjectIdBox" Width="200" Margin="0,0,6,0"
+                     ToolTip="Project id, e.g. rotary-knob"/>
+            <Button Content="Add project" Padding="8,4" Click="OnAddProjectClick"/>
+        </StackPanel>
+
+        <ScrollViewer Grid.Row="2" VerticalScrollBarVisibility="Auto">
+            <StackPanel x:Name="ProjectListPanel"/>
+        </ScrollViewer>
+    </Grid>
+</Window>

@@ -1,0 +1,22 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Live wire-format smoke test for T58's AgentSessionClient against a real pc-dash-hub
+    (T57 endpoints, deployed 2026-08-28, commit 2f95e01). Same pattern as
+    ../HubClientSmoke and ../LogoSmoke: not Windows-targeted (the client itself has no
+    WPF/WinRT dependency, only HttpClient/System.Text.Json), so it runs from this Linux
+    dev container with LAN reachability. Compiles the real AgentSessionClient.cs by
+    reference rather than duplicating it.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/PcDashApp.HookForwarder/AgentSessionClient.cs" Link="AgentSessionClient.cs" />
+  </ItemGroup>
+
+</Project>

@@ -18,6 +18,8 @@
                 <Run Text=" -&gt; "/><Run x:Name="HubUrlText"/>
             </TextBlock>
             <TextBlock x:Name="BuildTimeText" FontSize="10" Foreground="Gray" Text="Build: unknown"/>
+            <Button x:Name="ProjectLogosButton" Content="Project logos..." HorizontalAlignment="Left"
+                    Padding="8,2" Margin="0,6,0,0" Click="OnProjectLogosClick"/>
         </StackPanel>
 
         <GroupBox Grid.Row="1" Header="Hub connection" Margin="0,0,0,10">

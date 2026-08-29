@@ -1,0 +1,24 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <!--
+    Live wire-format smoke test for T52's HubLogoAssignmentStore against a real
+    pc-dash-hub. Same pattern as ../HubClientSmoke: not Windows-targeted (the
+    store itself has no WPF/WinRT dependency, only HttpClient/System.IO/JSON),
+    so it can run from this Linux dev container with LAN reachability. Compiles
+    the real Logos/*.cs files by reference rather than duplicating them.
+  -->
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="../../src/PcDashApp/Logos/HubLogoAssignmentStore.cs" Link="HubLogoAssignmentStore.cs" />
+    <Compile Include="../../src/PcDashApp/Logos/ProjectLogo.cs" Link="ProjectLogo.cs" />
+    <Compile Include="../../src/PcDashApp/Logos/GenericIconIds.cs" Link="GenericIconIds.cs" />
+    <Compile Include="../../src/PcDashApp/Logos/LogoAssignmentStore.cs" Link="LogoAssignmentStore.cs" />
+  </ItemGroup>
+
+</Project>

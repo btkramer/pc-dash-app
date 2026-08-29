@@ -2,6 +2,7 @@ using System.IO;
 using System.Reflection;
 using System.Windows;
 using System.Windows.Threading;
+using PcDashApp.Logos;
 
 namespace PcDashApp;
 
@@ -12,6 +13,9 @@ public partial class MainWindow : Window
     private readonly CancellationTokenSource _cts = new();
     private readonly StateReporter _reporter;
     private readonly DispatcherTimer _agoTimer;
+    // T52: HubLogoAssignmentStore, live-verified against pc-dash-hub 2026-08-28
+    // (test/LogoSmoke) -- see ILogoAssignmentStore's doc comment for the swap history.
+    private readonly ILogoAssignmentStore _logoStore;
     private DateTime? _lastSuccessAt;
     private int _logLineCount;
 
@@ -24,6 +28,7 @@ public partial class MainWindow : Window
         HubUrlText.Text = config.HubBaseUrl;
         BuildTimeText.Text = GetBuildTimeLabel();
 
+        _logoStore = new HubLogoAssignmentStore(config.HubBaseUrl);
         _reporter = new StateReporter(config);
         _reporter.Ticked += OnTicked;
 
@@ -99,11 +104,17 @@ public partial class MainWindow : Window
         LogBox.ScrollToEnd();
     }
 
+    private void OnProjectLogosClick(object sender, RoutedEventArgs e)
+    {
+        new ProjectLogosWindow(_logoStore) { Owner = this }.Show();
+    }
+
     private void OnClosed(object? sender, EventArgs e)
     {
         _agoTimer.Stop();
         _cts.Cancel();
         _reporter.Dispose();
+        _logoStore.Dispose();
     }
 
     /// <summary>T27: which build is actually running has cost real debugging time twice
