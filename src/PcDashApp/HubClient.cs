@@ -33,6 +33,17 @@ namespace PcDashApp;
 /// display name for whichever of Standard/Daylight is currently in effect, e.g.
 /// "Mountain Standard Time") -- not meant to be parsed, just a human-readable label if
 /// a UI wants to show one.
+///
+/// T76: lastInputSecondsAgo carries real keyboard/mouse idle time (Windows'
+/// GetLastInputInfo, see InputActivityMonitor) so the knob can stop sleeping during
+/// active PC use. Raw seconds-since-input, not a precomputed "active" bool -- same
+/// choice as utcOffsetMinutes over a baked-in local time string: the 30-minute
+/// active/sleep threshold (Brian's decision, 2026-09-01) is knob-side display policy,
+/// not a fact about the PC, so it belongs in lilygo-rotary-knob's own code where it can
+/// be tuned without an app redeploy. Always known/sent on every report that fires
+/// (never omitted) -- like the timezone fields, there's no failure mode where this is
+/// transiently unreadable, only the null-if-the-OS-call-itself-fails case, which is
+/// treated as omit (see InputActivityMonitor).
 /// </summary>
 public sealed record NowPlayingPayload(
     [property: JsonPropertyName("title")] string? Title,
@@ -56,6 +67,7 @@ public sealed class PcStateUpdate
     public bool ClearNowPlaying { get; init; }
     public int? UtcOffsetMinutes { get; init; }
     public string? TimeZoneName { get; init; }
+    public int? LastInputSecondsAgo { get; init; }
 }
 
 public sealed class HubClient
@@ -84,6 +96,8 @@ public sealed class HubClient
             pcState["utcOffsetMinutes"] = offsetMinutes;
         if (update.TimeZoneName is { } tzName)
             pcState["timeZoneName"] = tzName;
+        if (update.LastInputSecondsAgo is { } idleSeconds)
+            pcState["lastInputSecondsAgo"] = idleSeconds;
 
         if (update.ClearNowPlaying)
             pcState["nowPlaying"] = null;

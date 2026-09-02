@@ -31,11 +31,14 @@
                 <Grid.RowDefinitions>
                     <RowDefinition/>
                     <RowDefinition/>
+                    <RowDefinition/>
                 </Grid.RowDefinitions>
                 <TextBlock Grid.Row="0" Grid.Column="0" Text="Status:"/>
                 <TextBlock Grid.Row="0" Grid.Column="1" x:Name="HubStatusText" Text="starting..."/>
                 <TextBlock Grid.Row="1" Grid.Column="0" Text="Last sync:"/>
                 <TextBlock Grid.Row="1" Grid.Column="1" x:Name="LastSyncText" Text="never"/>
+                <TextBlock Grid.Row="2" Grid.Column="0" Text="Input idle:"/>
+                <TextBlock Grid.Row="2" Grid.Column="1" x:Name="InputIdleText" Text="unknown"/>
             </Grid>
         </GroupBox>
 

@@ -25,13 +25,14 @@ async Task<JsonElement> GetState()
 }
 
 // --- Step A: full synthetic state ---
-Console.WriteLine("Step A: PUT full synthetic pcState (volume/mute/nowPlaying)...");
+Console.WriteLine("Step A: PUT full synthetic pcState (volume/mute/nowPlaying/lastInputSecondsAgo)...");
 var okA = await hubClient.ReportStateAsync(new PcStateUpdate
 {
     VolumePercent = 37,
     SpeakerMuted = false,
     NowPlayingIsPlaying = true,
-    NowPlaying = new NowPlayingPayload("[SMOKE TEST] pc-dash-app wire check", "pc-dash-app", "smoke-test", 1000, 200000)
+    NowPlaying = new NowPlayingPayload("[SMOKE TEST] pc-dash-app wire check", "pc-dash-app", "smoke-test", 1000, 200000),
+    LastInputSecondsAgo = 42
 }, CancellationToken.None);
 Check("PUT succeeded", okA);
 
@@ -43,6 +44,7 @@ Check("nowPlaying.title == smoke test title",
     stateA.GetProperty("nowPlaying").GetProperty("title").GetString() == "[SMOKE TEST] pc-dash-app wire check");
 Check("pcConnected == true", stateA.GetProperty("pcConnected").GetBoolean() == true);
 Check("lastSeenSecondsAgo is small (<=5)", stateA.GetProperty("lastSeenSecondsAgo").GetInt32() <= 5);
+Check("lastInputSecondsAgo == 42 (T76)", stateA.GetProperty("lastInputSecondsAgo").GetInt32() == 42);
 
 // --- Step B: clear nowPlaying only, confirm omitted fields stay untouched ---
 Console.WriteLine("\nStep B: PUT with ClearNowPlaying=true, everything else omitted...");
@@ -56,6 +58,7 @@ var stateB = await GetState();
 Check("nowPlaying == null (explicit clear worked)", stateB.GetProperty("nowPlaying").ValueKind == JsonValueKind.Null);
 Check("volumePercent still 37 (omitted field left untouched)", stateB.GetProperty("volumePercent").GetInt32() == 37);
 Check("nowPlayingIsPlaying still true (omitted field left untouched)", stateB.GetProperty("nowPlayingIsPlaying").GetBoolean() == true);
+Check("lastInputSecondsAgo still 42 (omitted field left untouched, T76)", stateB.GetProperty("lastInputSecondsAgo").GetInt32() == 42);
 
 Console.WriteLine(failures == 0 ? "\nAll checks passed." : $"\n{failures} check(s) FAILED.");
 return failures == 0 ? 0 : 1;

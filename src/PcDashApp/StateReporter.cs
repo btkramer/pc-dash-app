@@ -15,6 +15,7 @@ public sealed record ReportTickResult(
     string? Title,
     string? Artist,
     string? Source,
+    int? LastInputSecondsAgo,
     bool? ReportOk);
 
 /// <summary>Last-successfully-sent values, for change comparison. T25: PositionMs/DurationMs
@@ -73,6 +74,11 @@ internal sealed record ComparableState(
 /// <see cref="ComparableState"/>'s change comparison -- a timezone flip alone shouldn't force an
 /// off-cycle send, it just rides along on the next change-triggered or heartbeat send like
 /// everything else, which is frequent enough (<=12s worst case) for a self-correcting clock.
+/// T76: LastInputSecondsAgo follows the same pattern -- computed fresh every tick and included
+/// on every report that fires, but excluded from the change comparison. It increments every
+/// single second while idle, so including it in <see cref="ComparableState"/> would force a
+/// send every tick forever; riding along on the heartbeat (<=12s worst case) is more than
+/// precise enough for a 30-minute active/sleep threshold.
 /// </summary>
 public sealed class StateReporter : IDisposable
 {
@@ -104,6 +110,7 @@ public sealed class StateReporter : IDisposable
 
             var localTz = TimeZoneInfo.Local;
             var utcNow = DateTime.UtcNow;
+            var idleSeconds = InputActivityMonitor.SecondsSinceLastInput();
 
             var update = new PcStateUpdate
             {
@@ -111,6 +118,7 @@ public sealed class StateReporter : IDisposable
                 SpeakerMuted = volume?.Muted,
                 UtcOffsetMinutes = (int)localTz.GetUtcOffset(utcNow).TotalMinutes,
                 TimeZoneName = localTz.IsDaylightSavingTime(utcNow) ? localTz.DaylightName : localTz.StandardName,
+                LastInputSecondsAgo = idleSeconds,
                 NowPlayingIsPlaying = media.Status switch
                 {
                     MediaReadStatus.Playing => media.Info!.IsPlaying,
@@ -146,6 +154,7 @@ public sealed class StateReporter : IDisposable
                 media.Info?.Title,
                 media.Info?.Artist,
                 media.Info?.Source,
+                idleSeconds,
                 reportOk));
 
             try

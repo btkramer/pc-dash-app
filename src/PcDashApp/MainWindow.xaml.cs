@@ -67,6 +67,7 @@ public partial class MainWindow : Window
             ? (tick.Artist is { } artist ? $"{title} - {artist}" : title)
             : "(none)";
         SourceText.Text = tick.Source ?? "(none)";
+        InputIdleText.Text = tick.LastInputSecondsAgo is { } idle ? $"{idle}s ago" : "unknown";
 
         // tick.ReportOk is null on a tick that skipped the hub PUT entirely (T17: no change,
         // heartbeat not yet due) -- leave hub status/last-sync/log alone on those, they only
