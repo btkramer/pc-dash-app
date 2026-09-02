@@ -17,20 +17,43 @@ namespace PcDashApp.HookForwarder;
 ///
 /// error still has no dedicated hook event and is NOT detected in this v1 (still
 /// open, see HOOKS_SCHEMA.md).
+///
+/// T85: `Notification`'s payload carries its own `notification_type`, which turned out
+/// to distinguish real pending-input moments (`permission_prompt`/`agent_needs_input`/
+/// `elicitation_dialog`) from Claude Code's own generic `idle_prompt` (fires just from
+/// sitting quiet, nothing actually pending) -- and other types like `auth_success` that
+/// aren't a "waiting on you" signal either. Before this, every `Notification` mapped to
+/// `needs-input`, which falsely flagged attention during ordinary idle stretches (the
+/// root problem T84 was originally scoped to work around via focus-tracking). Only the
+/// confirmed real-pending types map to `needs-input` now; everything else `Notification`
+/// sends (including types this app doesn't recognize yet) gets the same treatment as
+/// `SubagentStop`/`PreCompact` -- not forwarded, status left unchanged -- rather than
+/// guessing a new type is safe to flag.
 /// </summary>
 internal static class HookEventMapper
 {
+    private static readonly HashSet<string> RealPendingInputNotificationTypes = new(StringComparer.Ordinal)
+    {
+        "permission_prompt",
+        "agent_needs_input",
+        "elicitation_dialog",
+    };
+
     /// <summary>Null return means "don't forward a status PUT for this event"
     /// (SessionEnd -- handled as a DELETE by the caller; SubagentStop/PreCompact/any
     /// event name this app doesn't recognize yet -- treated as nothing-to-report, not
-    /// an error, since Claude Code's own hook event set can grow over time).</summary>
-    public static string? MapStatus(string? hookEventName) => hookEventName switch
+    /// an error, since Claude Code's own hook event set can grow over time). `Notification`
+    /// additionally needs <paramref name="notificationType"/> to tell a real pending-input
+    /// moment from a generic idle nudge -- see the type's doc comment.</summary>
+    public static string? MapStatus(string? hookEventName, string? notificationType = null) => hookEventName switch
     {
         "SessionStart" => "idle",
         "UserPromptSubmit" => "working",
         "PreToolUse" => "working",
         "PostToolUse" => "working",
-        "Notification" => "needs-input",
+        "Notification" => notificationType is { } t && RealPendingInputNotificationTypes.Contains(t)
+            ? "needs-input"
+            : null, // idle_prompt, auth_success, or any other/unrecognized type -- not a real "waiting on you" signal
         "Stop" => "done",
         _ => null,
     };

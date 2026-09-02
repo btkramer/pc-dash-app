@@ -59,6 +59,8 @@ static async Task RunAsync()
     var sessionId = payload["session_id"]?.GetValue<string>();
     var hookEvent = payload["hook_event_name"]?.GetValue<string>();
     var cwd = payload["cwd"]?.GetValue<string>();
+    // T85: only meaningful on Notification -- see HookEventMapper's doc comment.
+    var notificationType = payload["notification_type"]?.GetValue<string>();
 
     if (string.IsNullOrEmpty(sessionId))
     {
@@ -81,11 +83,12 @@ static async Task RunAsync()
         return;
     }
 
-    var status = HookEventMapper.MapStatus(hookEvent);
+    var status = HookEventMapper.MapStatus(hookEvent, notificationType);
     if (status is null)
     {
-        // Not an error -- SubagentStop/PreCompact/unrecognized events are deliberately
-        // not forwarded. See HOOKS_SCHEMA.md's mapping table.
+        // Not an error -- SubagentStop/PreCompact/unrecognized events, and now (T85) a
+        // Notification whose notification_type isn't a real pending-input case (e.g.
+        // idle_prompt), are deliberately not forwarded. See HOOKS_SCHEMA.md's mapping table.
         return;
     }
 

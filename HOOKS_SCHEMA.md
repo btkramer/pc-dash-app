@@ -106,7 +106,8 @@ the gap since it was designed away, not overlooked.
 | `UserPromptSubmit` | PUT `status: working` | Claude is about to start processing |
 | `PreToolUse` | PUT `status: working` | |
 | `PostToolUse` | PUT `status: working` | more tool calls or a final response likely still coming |
-| `Notification` | PUT `status: needs-input` | Claude Code's own signal for "waiting on you" (permission prompt, idle nudge) |
+| `Notification` (`notification_type` in `permission_prompt`/`agent_needs_input`/`elicitation_dialog`) | PUT `status: needs-input` | a genuine "waiting on you" moment |
+| `Notification` (any other `notification_type`, e.g. `idle_prompt`, `auth_success`) | not forwarded | T85: `idle_prompt` fires from sitting quiet with nothing pending -- treating it as `needs-input` (the pre-T85 behavior) falsely flagged attention on ordinary idle stretches |
 | `Stop` | PUT `status: done` | turn complete, waiting on the next prompt |
 | `SessionEnd` | **DELETE** `/api/agent-sessions/{sessionId}` | see "Session cleanup" below — not a status value at all |
 | `SubagentStop` | not forwarded | parent session's own working/done already reflects state |
