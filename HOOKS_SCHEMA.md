@@ -170,6 +170,15 @@ Same binary registered for every event — the event name comes from the stdin
 JSON's own `hook_event_name` field, not from argv, so no per-event command
 variation is needed.
 
+## Related: attention re-nag tunable (T88)
+
+The knob/phone derive an aggregate attention state (`needs-input`/`error`)
+from the session statuses this forwarder reports. How often they *re-fire*
+the two-beep attention chime while that state persists is governed by a
+global settings tunable, `attentionRenagMinutes` — see `SETTINGS_SCHEMA.md`.
+It does not touch this forwarder or the wire shape above (no `Stop`-event
+change: the `working → done` completion edge is detected hub-side, T87).
+
 ## Explicitly out of scope for this draft
 
 - Approve/deny/interrupt control (T58 is notify-only v1 by design; the client
