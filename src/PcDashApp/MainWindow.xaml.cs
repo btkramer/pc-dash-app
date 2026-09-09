@@ -16,6 +16,11 @@ public partial class MainWindow : Window
     // T52: HubLogoAssignmentStore, live-verified against pc-dash-hub 2026-08-28
     // (test/LogoSmoke) -- see ILogoAssignmentStore's doc comment for the swap history.
     private readonly ILogoAssignmentStore _logoStore;
+    // T96: the app's first settings reader+writer -- two hub-global beep toggles.
+    private readonly SettingsClient _settingsClient;
+    // Suppresses the Checked/Unchecked handlers while we set the boxes programmatically
+    // (initial load, or a revert after a failed PUT) so those don't fire a PUT of their own.
+    private bool _suppressBeepToggleEvents;
     private DateTime? _lastSuccessAt;
     private int _logLineCount;
 
@@ -29,6 +34,7 @@ public partial class MainWindow : Window
         BuildTimeText.Text = GetBuildTimeLabel();
 
         _logoStore = new HubLogoAssignmentStore(config.HubBaseUrl);
+        _settingsClient = new SettingsClient(config.HubBaseUrl);
         _reporter = new StateReporter(config);
         _reporter.Ticked += OnTicked;
 
@@ -41,6 +47,61 @@ public partial class MainWindow : Window
         Closed += OnClosed;
 
         _ = _reporter.RunAsync(_cts.Token);
+        _ = LoadBeepSettingsAsync();
+    }
+
+    /// <summary>Reads the current knob/phone beep toggles from the hub on window open.
+    /// On failure the checkboxes stay disabled with an "unavailable" note -- we never show a
+    /// guessed state as if it were the real setting.</summary>
+    private async Task LoadBeepSettingsAsync()
+    {
+        var settings = await _settingsClient.GetAsync(_cts.Token);
+        if (settings is null)
+        {
+            BeepSettingsNote.Text = "Beep settings unavailable (hub unreachable).";
+            return;
+        }
+
+        _suppressBeepToggleEvents = true;
+        KnobBeepCheckBox.IsChecked = settings.KnobBeepEnabled;
+        PhoneBeepCheckBox.IsChecked = settings.PhoneBeepEnabled;
+        _suppressBeepToggleEvents = false;
+
+        KnobBeepCheckBox.IsEnabled = true;
+        PhoneBeepCheckBox.IsEnabled = true;
+        BeepSettingsNote.Text = "Applies to every session; shared with the phone deck.";
+    }
+
+    private void OnKnobBeepToggled(object sender, RoutedEventArgs e)
+        => _ = PushBeepToggleAsync(KnobBeepCheckBox, "knobBeepEnabled");
+
+    private void OnPhoneBeepToggled(object sender, RoutedEventArgs e)
+        => _ = PushBeepToggleAsync(PhoneBeepCheckBox, "phoneBeepEnabled");
+
+    /// <summary>PUTs the single toggled field. On failure, reverts the checkbox to its
+    /// previous state (with events suppressed so the revert doesn't re-trigger a PUT) and
+    /// notes it -- the UI must not claim a write that didn't land.</summary>
+    private async Task PushBeepToggleAsync(System.Windows.Controls.CheckBox box, string fieldName)
+    {
+        if (_suppressBeepToggleEvents)
+            return;
+
+        var desired = box.IsChecked == true;
+        box.IsEnabled = false;
+        var ok = await _settingsClient.PutFieldAsync(fieldName, desired, _cts.Token);
+        box.IsEnabled = true;
+
+        if (ok)
+        {
+            BeepSettingsNote.Text = $"Saved: {box.Content} {(desired ? "on" : "off")}.";
+        }
+        else
+        {
+            _suppressBeepToggleEvents = true;
+            box.IsChecked = !desired;
+            _suppressBeepToggleEvents = false;
+            BeepSettingsNote.Text = $"Couldn't save {box.Content} (hub unreachable?). Reverted.";
+        }
     }
 
     private void OnTicked(ReportTickResult tick)
@@ -116,6 +177,7 @@ public partial class MainWindow : Window
         _cts.Cancel();
         _reporter.Dispose();
         _logoStore.Dispose();
+        _settingsClient.Dispose();
     }
 
     /// <summary>T27: which build is actually running has cost real debugging time twice

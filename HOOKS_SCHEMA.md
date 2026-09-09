@@ -108,7 +108,7 @@ the gap since it was designed away, not overlooked.
 | `PostToolUse` | PUT `status: working` | more tool calls or a final response likely still coming |
 | `Notification` (`notification_type` in `permission_prompt`/`agent_needs_input`/`elicitation_dialog`) | PUT `status: needs-input` | a genuine "waiting on you" moment |
 | `Notification` (any other `notification_type`, e.g. `idle_prompt`, `auth_success`) | not forwarded | T85: `idle_prompt` fires from sitting quiet with nothing pending -- treating it as `needs-input` (the pre-T85 behavior) falsely flagged attention on ordinary idle stretches |
-| `Stop` | PUT `status: done` | turn complete, waiting on the next prompt |
+| `Stop` | PUT `status: done` | turn complete, waiting on the next prompt. Fires every turn-end regardless of whether `working` was set that turn — deliberately kept as-is (T97/T102, 2026-09-03) rather than switching to `Stop → idle` with a purely server-computed `done`, which the forwarder can't reliably feed. The hub owns the `done ⟺ stoppedAt` invariant — see the section below. No forwarder change. |
 | `SessionEnd` | **DELETE** `/api/agent-sessions/{sessionId}` | see "Session cleanup" below — not a status value at all |
 | `SubagentStop` | not forwarded | parent session's own working/done already reflects state |
 | `PreCompact` | not forwarded | transient, not a status change from the outside |
@@ -118,6 +118,28 @@ the gap since it was designed away, not overlooked.
 only ever sent on `SessionStart`; `done` is what `Stop` sends. Two distinct
 values only make sense as two distinct meanings given the fixed 5-state set
 pc-dash-hub built against.
+
+### The `done ⟺ stoppedAt` invariant (hub-owned, T97/T102 — 2026-09-03)
+
+Full statement of what's summarized in the `Stop` mapping row above. `done` is
+**transient**, not a resting state:
+
+- **`done` always carries a `stoppedAt`.** The forwarder sends `status: done`
+  on every `Stop` with no `stoppedAt` (it has no reliable value to send — no
+  Claude Code hook provides one). The hub stamps `stoppedAt = now` on any
+  `done` that arrives without one, and preserves the original on repeat
+  `done`s for the same stop.
+- **The hub's computed `working → idle` edge stays only as a fallback** for
+  the case the forwarder's `Stop` PUT never lands.
+- **`done` decays to `idle`** after `AGENT_SESSION_DONE_DECAY_SECONDS`
+  (hub config; 15s at time of writing). `GET` presents a decayed session —
+  and any legacy `done` with `stoppedAt: null` — as `idle`.
+- **Consumers dedup the completion chime on the `stoppedAt` value, not on a
+  status transition.** A session can report `done` on several consecutive
+  polls for one actual stop; they're the same event iff `stoppedAt` matches.
+
+Nothing here changes the forwarder or the wire shape — it never sends
+`stoppedAt` and never depended on `done` meaning more than "a turn ended."
 
 **`error` still has no dedicated hook event and is NOT detected in this v1.**
 The only signal available is `PostToolUse`'s `tool_response` occasionally
@@ -176,8 +198,9 @@ The knob/phone derive an aggregate attention state (`needs-input`/`error`)
 from the session statuses this forwarder reports. How often they *re-fire*
 the two-beep attention chime while that state persists is governed by a
 global settings tunable, `attentionRenagMinutes` — see `SETTINGS_SCHEMA.md`.
-It does not touch this forwarder or the wire shape above (no `Stop`-event
-change: the `working → done` completion edge is detected hub-side, T87).
+It does not touch this forwarder or the wire shape above. Completion-edge
+detection is hub-side (T87, and T97/T102's `done ⟺ stoppedAt` invariant —
+see the `Stop` row in the mapping table).
 
 ## Explicitly out of scope for this draft
 

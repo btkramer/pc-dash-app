@@ -44,15 +44,24 @@ Per the 2026-09-02 attention-indicator reframe (coordinator `TASKS.md`,
   same division of labour as T44 (`utcOffsetMinutes`) and T76
   (`lastInputSecondsAgo`): the hub carries the value, the consumer
   implements the policy. Interval is tunable with no app/firmware redeploy.
-- The `working → done` one-time completion chime (T87, hub-detected) is
-  **not** governed by this tunable — it is a single edge, never re-nagged.
+- The completion chime (fired when an agent session reaches `done`) is
+  **not** governed by this tunable — it is a single event, never re-nagged.
+  `done` is transient (T97/T102): it always carries a hub-stamped
+  `stoppedAt`, decays to `idle` after `AGENT_SESSION_DONE_DECAY_SECONDS`,
+  and consumers **dedup the chime on the `stoppedAt` value, not on a status
+  edge** (a session can report `done` on several consecutive polls for one
+  stop). Full statement in `HOOKS_SCHEMA.md` (the done/stoppedAt invariant
+  section).
 
 ## `knobBeepEnabled` / `phoneBeepEnabled` (T96)
 
-Status: **field names APPROVED by coordinator, write/read path confirmed
-with pc-dash-hub, knob-firmware question answered — all 2026-09-02. Code
-HELD pending only Brian's OK on the reader+writer architecture shift (being
-surfaced to him live by the coordinator).**
+Status: **BUILT 2026-09-03, compile-verified (0 warnings). Brian OK'd the
+reader+writer architecture shift directly (coordinator session, relayed).
+HELD: not committed (pending Brian's own direct commit go-ahead per this
+project's norm) and `dist/win-x64/` deliberately NOT republished yet —
+deploy rides with a coordinated pc-dash-hub redeploy (T102 + knob beep
+batch), since the toggles need the hub's `/api/settings` beep fields live
+to work.**
 
 Brian wants **two independent beep-enable toggles**, surfaced as user-facing
 controls in the WPF status window (T13), backed by the settings schema —
@@ -112,20 +121,29 @@ writes and the per-device fields regardless.
    global). Not the device-state echo (that's only for the knob's existing
    poll convenience).
 
-### WPF build plan (this app — HELD, do not start until Brian approves)
+### WPF build — as built (2026-09-03)
 
-- New `SettingsClient.cs` (or extend `HubClient`): `GET /api/settings` →
-  parse `knobBeepEnabled` / `phoneBeepEnabled`; `PUT /api/settings` with a
-  partial `JsonObject` body (`{"knobBeepEnabled": <bool>}` etc.), trim-safe
-  the same way `HubClient` builds its body (`JsonObject.ToJsonString()`, no
-  reflection / source-gen entry).
-- `MainWindow`: two checkboxes ("Knob beep" / "Phone beep"), populated from
-  `GET /api/settings` on window open, `PUT` the single changed field on
-  toggle. Hub-unreachable handling: disable the toggles + show a "settings
-  unavailable" note rather than presenting a stale/false state as truth
-  (same principle as the T46 "don't make a failure look like success" gap).
-- Net new hub work (their side): 2 fields + defaults in the global model,
-  the `buzzerEnabled` alias-echo, atomic write. Small.
+- **`SettingsClient.cs`** (new, standalone — not folded into `HubClient`,
+  which stays pcState-PUT-only): own `HttpClient` (5s timeout).
+  `GetAsync` → `GET /api/settings`, parses `knobBeepEnabled` /
+  `phoneBeepEnabled` via `JsonNode` (trim-safe, no source-gen entry), missing
+  field falls back to `true` (hub omits unset fields), returns `null` on any
+  failure. `PutFieldAsync(field, bool)` → `PUT /api/settings` with a
+  single-field `JsonObject` body (`{"knobBeepEnabled": false}`), relying on
+  the hub's partial deep-merge; returns `false` on failure.
+  `BeepSettings` record is the read model. `IDisposable`.
+- **`MainWindow`**: new "Beep alerts" group box (grid row 4, activity log
+  shifted to row 5) with two checkboxes. Both start disabled; on window open
+  `LoadBeepSettingsAsync` populates them (events suppressed via
+  `_suppressBeepToggleEvents` so the programmatic set doesn't fire a PUT) and
+  enables them. On toggle, `PushBeepToggleAsync` PUTs just the changed field,
+  disables the box during the call, and **reverts the checkbox** (events
+  suppressed) with a note if the PUT fails — the UI never claims a write that
+  didn't land. Hub unreachable on load → boxes stay disabled, note reads
+  "Beep settings unavailable (hub unreachable)." (T46 don't-make-failure-
+  look-like-success principle.) `SettingsClient` disposed on window close.
+- Net new hub work (their side, per T96 plan): 2 fields + defaults in the
+  global model, the `buzzerEnabled` alias-echo, atomic write.
 
 ### Implication flagged to coordinator (T96)
 
