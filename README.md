@@ -1,5 +1,10 @@
 # PC Dash App
 
+![.NET 8](https://img.shields.io/badge/.NET-8-512BD4?logo=dotnet&logoColor=white)
+![WPF](https://img.shields.io/badge/WPF-Windows-0078D4?logo=windows&logoColor=white)
+![C#](https://img.shields.io/badge/C%23-239120?logo=csharp&logoColor=white)
+![Claude Code](https://img.shields.io/badge/Claude%20Code-hooks-D97757)
+
 A lightweight Windows companion app (.NET 8, WPF) for the PC Dash knob. It reads the PC's real
 audio, media and activity state and reports it to the hub, so the knob shows live values
 instead of placeholders. It also forwards **Claude Code** session events so the knob can show
@@ -16,6 +21,36 @@ Part of the **PC Dash** family:
 | [lilygo-rotary-knob](https://github.com/btkramer/lilygo-rotary-knob) | The knob: ESP32-S3 firmware with a round AMOLED display |
 | [pc-dash-hub](https://github.com/btkramer/pc-dash-hub) | Self-hosted hub (FastAPI + Docker) that relays state, settings and smart-home actions |
 | **pc-dash-app** (this repo) | Windows companion app |
+
+## The v2 window
+
+The next version of the app becomes the control center for the whole system: sessions,
+profiles, macros, lighting, schedules and notification forwarding. It's prototyped in three
+looks that follow Windows light/dark mode.
+
+| | |
+|:---:|:---:|
+| ![Almanac look](docs/images/almanac-dark-status.png) | ![Desk map look](docs/images/desk-dark-status.png) |
+| **Almanac**: an editorial status page that reads like a briefing | **Desk map**: the whole setup as a live diagram |
+| ![Scenes and circadian curve](docs/images/console-dark-scenes.png) | ![Schedule](docs/images/console-dark-schedule.png) |
+| **Scenes & Light**: drag the circadian brightness/warmth curve | **Schedule**: profiles and DND windows across the week |
+| ![Macros, light mode](docs/images/console-light-macros.png) | ![Notifications](docs/images/console-dark-notifications.png) |
+| **Macros** (light mode): a library shared with the deck | **Notifications**: pick which Windows toasts reach the knob and deck, and at what tier |
+
+<sub>From the interactive v2 design prototype.</sub>
+
+## The PC Dash system
+
+```mermaid
+flowchart LR
+  KNOB["Knob<br/>(ESP32-S3)"] -- "USB HID<br/>volume, media" --> PC["Windows PC"]
+  APP["pc-dash-app<br/>(.NET 8)"] -- "audio, media,<br/>agent sessions" --> HUB["pc-dash-hub<br/>(FastAPI, Docker)"]
+  PC --- APP
+  KNOB <-- "Wi-Fi: state,<br/>settings" --> HUB
+  DECK["Phone deck<br/>(browser)"] <--> HUB
+  HUB -- "lights, scenes" --> HA["Home Assistant"]
+  CC["Claude Code hooks"] --> APP
+```
 
 ## What it does
 
