@@ -5,6 +5,10 @@ audio, media and activity state and reports it to the hub, so the knob shows liv
 instead of placeholders. It also forwards **Claude Code** session events so the knob can show
 when an agent is working or waiting on you.
 
+![PC Dash desktop app: connections, agent sessions, PC stats and now playing](docs/images/screenshot.png)
+
+<sub>Design prototype of the next version of the app window.</sub>
+
 Part of the **PC Dash** family:
 
 | Repo | Role |
